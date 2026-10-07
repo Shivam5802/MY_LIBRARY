@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  OWNER
+  DEVELOPER
+}
+
+enum Shift {
+  MORNING
+  EVENING
+  FULL_DAY
+}
+
+enum Locker {
+  WITH_LOCKER
+  WITHOUT_LOCKER
+}
+
+enum StudentStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum SeatStatus {
+  AVAILABLE
+  OCCUPIED
+}
+
+enum BillingStatus {
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  OTHER
+}
+
+model User {
+  id              String    @id @default(uuid())
+  username        String    @unique
+  passwordHash    String    @map("password_hash")
+  role            Role
+  name            String?
+  mobile          String?
+  email           String?
+  profilePhotoUrl String?   @map("profile_photo_url")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  activityLogs    ActivityLog[]
+
+  @@map("users")
+}
+
+model Seat {
+  id          String                  @id @default(uuid())
+  seatNumber  Int                     @unique @map("seat_number")
+  status      SeatStatus              @default(AVAILABLE)
+  createdAt   DateTime                @default(now()) @map("created_at")
+  updatedAt   DateTime                @updatedAt @map("updated_at")
+  assignments StudentSeatAssignment[]
+
+  @@map("seats")
+}
+
+model Student {
+  id             String                  @id @default(uuid())
+  name           String
+  mobile         String
+  photoUrl       String?                 @map("photo_url")
+  shift          Shift
+  locker         Locker
+  admissionDate  DateTime                @map("admission_date")
+  monthlyFee     Decimal                 @map("monthly_fee") @db.Decimal(10, 2)
+  status         StudentStatus           @default(ACTIVE)
+  createdAt      DateTime                @default(now()) @map("created_at")
+  updatedAt      DateTime                @updatedAt @map("updated_at")
+  archivedAt     DateTime?               @map("archived_at")
+  assignments    StudentSeatAssignment[]
+  billingPeriods BillingPeriod[]
+  payments       Payment[]
+
+  @@map("students")
+}
+
+model StudentSeatAssignment {
+  id         String    @id @default(uuid())
+  studentId  String    @map("student_id")
+  seatId     String    @map("seat_id")
+  assignedAt DateTime  @default(now()) @map("assigned_at")
+  vacatedAt  DateTime? @map("vacated_at")
+  isCurrent  Boolean   @default(true) @map("is_current")
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  seat    Seat    @relation(fields: [seatId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, isCurrent])
+  @@index([seatId, isCurrent])
+  @@map("student_seat_assignments")
+}
+
+model BillingPeriod {
+  id          String        @id @default(uuid())
+  studentId   String        @map("student_id")
+  periodStart DateTime      @map("period_start")
+  periodEnd   DateTime      @map("period_end")
+  amount      Decimal       @db.Decimal(10, 2)
+  status      BillingStatus @default(PENDING)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  shiftSnapshot   Shift?        @map("shift_snapshot")
+  lockerSnapshot  Locker?       @map("locker_snapshot")
+
+  student  Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@unique([studentId, periodStart])
+  @@index([studentId, periodStart, periodEnd])
+  @@map("billing_periods")
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  receiptNumber   String        @unique @map("receipt_number")
+  studentId       String        @map("student_id")
+  billingPeriodId String        @map("billing_period_id")
+  amount          Decimal       @db.Decimal(10, 2)
+  paymentDate     DateTime      @default(now()) @map("payment_date")
+  paymentMethod   PaymentMethod @default(CASH) @map("payment_method")
+  reference       String?
+  note            String?
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  student       Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  billingPeriod BillingPeriod @relation(fields: [billingPeriodId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([billingPeriodId])
+  @@index([paymentDate])
+  @@map("payments")
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
+model ActivityLog {
+  id         String   @id @default(uuid())
+  action     String
+  userId     String?  @map("user_id")
+  entityType String?  @map("entity_type")
+  entityId   String?  @map("entity_id")
+  studentId  String?  @map("student_id")
+  metadata   String?
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([action])
+  @@index([userId])
+  @@index([studentId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
