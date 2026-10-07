@@ -8,6 +8,7 @@ export interface CreateStudentPayload {
   shift: Shift;
   locker: Locker;
   admissionDate: string;
+  feeCycleStartDate: string;
   monthlyFee: number;
   seatNumber?: number | null;
 }
@@ -19,6 +20,7 @@ export interface UpdateStudentPayload {
   shift?: Shift;
   locker?: Locker;
   admissionDate?: string;
+  feeCycleStartDate?: string;
   monthlyFee?: number;
 }
 

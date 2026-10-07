@@ -1,5 +1,9 @@
 import assert from 'node:assert';
 import http from 'http';
+import dns from 'dns';
+
+dns.setDefaultResultOrder('ipv4first');
+
 import { app } from './app.js';
 import { BillingDateUtils } from './utils/billing-date.js';
 import { FeeStatusService } from './services/fee-status.service.js';
@@ -207,19 +211,20 @@ async function runPrompt5Verification() {
     const refDate = new Date('2026-10-10T12:00:00.000Z');
     const pStart = new Date('2026-09-15T00:00:00.000Z');
     
-    // Status 1: DUE_SOON (periodEnd is 2026-10-14, which is 4 days away from Oct 10)
-    const pEndSoon = new Date('2026-10-14T00:00:00.000Z');
-    const calcSoon = FeeStatusService.calculateStatus(pStart, pEndSoon, 1000, 0, refDate, 5);
+    // Status 1: DUE_SOON (dueDate is 2026-10-14, which is 4 days away from Oct 10)
+    const dueDateSoon = new Date('2026-10-14T00:00:00.000Z');
+    const pEndSoon = new Date('2026-10-13T00:00:00.000Z');
+    const calcSoon = FeeStatusService.calculateStatus(pStart, pEndSoon, 1000, 0, refDate, 5, dueDateSoon);
     assert.strictEqual(calcSoon.status, 'DUE_SOON', 'Should be DUE_SOON within 5-day window');
 
-    // Status 2: DUE (periodEnd is 2026-10-10, exactly on due date)
-    const pEndDue = new Date('2026-10-10T00:00:00.000Z');
-    const calcDue = FeeStatusService.calculateStatus(pStart, pEndDue, 1000, 0, refDate, 5);
+    // Status 2: DUE (dueDate is 2026-10-10, exactly on due date)
+    const dueDateDue = new Date('2026-10-10T00:00:00.000Z');
+    const calcDue = FeeStatusService.calculateStatus(pStart, new Date('2026-10-09T00:00:00.000Z'), 1000, 0, refDate, 5, dueDateDue);
     assert.strictEqual(calcDue.status, 'DUE', 'Should be DUE on the due date');
 
-    // Status 3: OVERDUE (periodEnd was 2026-10-05, past due date)
-    const pEndOverdue = new Date('2026-10-05T00:00:00.000Z');
-    const calcOverdue = FeeStatusService.calculateStatus(pStart, pEndOverdue, 1000, 0, refDate, 5);
+    // Status 3: OVERDUE (dueDate was 2026-10-05, past due date)
+    const dueDateOverdue = new Date('2026-10-05T00:00:00.000Z');
+    const calcOverdue = FeeStatusService.calculateStatus(pStart, new Date('2026-10-04T00:00:00.000Z'), 1000, 0, refDate, 5, dueDateOverdue);
     assert.strictEqual(calcOverdue.status, 'OVERDUE', 'Should be OVERDUE past due date');
 
     // Status 4: PAID

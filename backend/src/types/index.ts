@@ -104,6 +104,7 @@ export interface SeatWithStudent {
     shift: Shift;
     locker: Locker;
     admissionDate: string;
+    feeCycleStartDate: string;
     monthlyFee: number;
     assignedAt: string;
   } | null;
@@ -125,6 +126,7 @@ export interface StudentWithSeat {
   shift: Shift;
   locker: Locker;
   admissionDate: string;
+  feeCycleStartDate: string;
   monthlyFee: number;
   status: StudentStatus;
   createdAt: string;
@@ -296,6 +298,7 @@ export interface StudentReportRow {
   shift: Shift;
   locker: Locker;
   admissionDate: string;
+  feeCycleStartDate: string;
   monthlyFee: number;
   status: StudentStatus;
 }
@@ -311,6 +314,7 @@ export interface SeatOccupancyReportRow {
 export interface AdmissionsReportRow {
   studentId: string;
   admissionDate: string;
+  feeCycleStartDate: string;
   studentName: string;
   seatNumber: number | null;
   shift: Shift;

@@ -27,13 +27,13 @@ export class BillingService {
     if (student.status === 'ARCHIVED') return;
 
     const currentCycle = BillingDateUtils.findCycleIndexForDate(
-      student.admissionDate,
+      student.feeCycleStartDate,
       referenceDate
     );
 
     // Ensure all cycles from 0 up to currentCycle exist
     for (let c = 0; c <= currentCycle; c++) {
-      const range = BillingDateUtils.getBillingPeriodRange(student.admissionDate, c);
+      const range = BillingDateUtils.getBillingPeriodRange(student.feeCycleStartDate, c);
 
       // Check if period already exists
       const existing = await prisma.billingPeriod.findUnique({
@@ -51,6 +51,7 @@ export class BillingService {
             studentId: student.id,
             periodStart: range.periodStart,
             periodEnd: range.periodEnd,
+            dueDate: range.dueDate,
             amount: student.monthlyFee, // Uses student's monthlyFee at generation time
             status: BillingStatus.PENDING,
             shiftSnapshot: student.shift,
@@ -201,7 +202,8 @@ export class BillingService {
       totalAmount,
       paidAmount,
       referenceDate,
-      5
+      5,
+      record.dueDate
     );
 
     const currentSeatAssignment = record.student?.assignments?.find((a: any) => a.isCurrent);

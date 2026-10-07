@@ -75,21 +75,24 @@ model Seat {
 }
 
 model Student {
-  id             String                  @id @default(uuid())
-  name           String
-  mobile         String
-  photoUrl       String?                 @map("photo_url")
-  shift          Shift
-  locker         Locker
-  admissionDate  DateTime                @map("admission_date")
-  monthlyFee     Decimal                 @map("monthly_fee") @db.Decimal(10, 2)
-  status         StudentStatus           @default(ACTIVE)
-  createdAt      DateTime                @default(now()) @map("created_at")
-  updatedAt      DateTime                @updatedAt @map("updated_at")
-  archivedAt     DateTime?               @map("archived_at")
-  assignments    StudentSeatAssignment[]
-  billingPeriods BillingPeriod[]
-  payments       Payment[]
+  id                String                  @id @default(uuid())
+  name              String
+  mobile            String
+  photoUrl          String?                 @map("photo_url")
+  shift             Shift
+  locker            Locker
+  // admissionDate = actual student admission date
+  admissionDate     DateTime                @map("admission_date")
+  // feeCycleStartDate = date from which recurring monthly fee counting starts
+  feeCycleStartDate DateTime                @default(now()) @map("fee_cycle_start_date")
+  monthlyFee        Decimal                 @map("monthly_fee") @db.Decimal(10, 2)
+  status            StudentStatus           @default(ACTIVE)
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+  archivedAt        DateTime?               @map("archived_at")
+  assignments       StudentSeatAssignment[]
+  billingPeriods    BillingPeriod[]
+  payments          Payment[]
 
   @@map("students")
 }
@@ -115,6 +118,7 @@ model BillingPeriod {
   studentId   String        @map("student_id")
   periodStart DateTime      @map("period_start")
   periodEnd   DateTime      @map("period_end")
+  dueDate     DateTime?     @map("due_date")
   amount      Decimal       @db.Decimal(10, 2)
   status      BillingStatus @default(PENDING)
   createdAt   DateTime      @default(now()) @map("created_at")

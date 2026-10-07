@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { BillingPeriodWithPayments } from '../types/auth';
 import { PaymentMethod } from '../types/auth';
+import { formatDate } from '../utils/dateUtils';
 import { DollarSign, X, AlertCircle, Loader2 } from 'lucide-react';
 
 interface RecordPaymentModalProps {
@@ -116,7 +117,13 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({
           <div className="flex justify-between">
             <span className="text-slate-500 dark:text-slate-400">Billing Cycle:</span>
             <span className="font-semibold text-slate-800 dark:text-slate-200">
-              {new Date(period.periodStart).toLocaleDateString()} – {new Date(period.periodEnd).toLocaleDateString()}
+              {formatDate(period.periodStart)} – {formatDate(period.periodEnd)}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500 dark:text-slate-400">Due Date:</span>
+            <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+              {formatDate(period.dueDate)}
             </span>
           </div>
           <div className="flex justify-between">

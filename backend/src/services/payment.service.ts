@@ -38,8 +38,9 @@ export class PaymentService {
       throw new Error('Payment amount must be greater than zero.');
     }
 
-    return prisma.$transaction(async (tx) => {
-      // 1. Fetch billing period and existing payments with lock
+    return prisma.$transaction(
+      async (tx) => {
+        // 1. Fetch billing period and existing payments with lock
       const period = await tx.billingPeriod.findUnique({
         where: { id: input.billingPeriodId },
         include: {
@@ -117,21 +118,23 @@ export class PaymentService {
 
       const currentSeat = period.student.assignments.find((a) => a.isCurrent);
 
-      return {
-        id: created.id,
-        receiptNumber: created.receiptNumber,
-        studentId: created.studentId,
-        billingPeriodId: created.billingPeriodId,
-        amount: Number(created.amount),
-        paymentDate: created.paymentDate.toISOString(),
-        paymentMethod: created.paymentMethod as PaymentMethod,
-        reference: created.reference,
-        note: created.note,
-        createdAt: created.createdAt.toISOString(),
-        studentName: period.student.name,
-        seatNumber: currentSeat?.seat?.seatNumber ?? null,
-      };
-    });
+        return {
+          id: created.id,
+          receiptNumber: created.receiptNumber,
+          studentId: created.studentId,
+          billingPeriodId: created.billingPeriodId,
+          amount: Number(created.amount),
+          paymentDate: created.paymentDate.toISOString(),
+          paymentMethod: created.paymentMethod as PaymentMethod,
+          reference: created.reference,
+          note: created.note,
+          createdAt: created.createdAt.toISOString(),
+          studentName: period.student.name,
+          seatNumber: currentSeat?.seat?.seatNumber ?? null,
+        };
+      },
+      { maxWait: 15000, timeout: 30000 }
+    );
   }
 
   /**

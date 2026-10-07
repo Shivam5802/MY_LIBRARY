@@ -3,6 +3,7 @@ import { developerService } from '../services/developer.service';
 import type { DeveloperIncomeOverview, PaymentDto } from '../types/auth';
 import { ReportFilterBar, type FilterState } from '../components/ReportFilterBar';
 import { ExportButtonGroup } from '../components/ExportButtonGroup';
+import { formatDate } from '../utils/dateUtils';
 import { useTheme } from '../context/ThemeContext';
 import {
   IndianRupee,
@@ -341,11 +342,7 @@ export const DeveloperIncomePage: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
-                          {new Date(p.paymentDate).toLocaleDateString('en-IN', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
+                          {formatDate(p.paymentDate)}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <button
@@ -443,13 +440,7 @@ export const DeveloperIncomePage: React.FC = () => {
               <div>
                 <p className="text-slate-500 dark:text-slate-400">Payment Date</p>
                 <p className="text-slate-800 dark:text-slate-200 mt-0.5">
-                  {new Date(selectedPayment.paymentDate).toLocaleString('en-IN', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {formatDate(selectedPayment.paymentDate)}
                 </p>
               </div>
               <div>

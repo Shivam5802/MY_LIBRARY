@@ -27,6 +27,7 @@ import {
   type DataIntegrityReport,
   type SystemInfoData,
 } from '../types/auth';
+import { calculateBillingPeriod, parseCalendarDate } from '../utils/dateUtils';
 
 const STORAGE_KEY = 'my_library_static_database_v2_clean';
 
@@ -239,6 +240,7 @@ class StaticDatabase {
       shift: student.shift,
       locker: student.locker,
       admissionDate: student.admissionDate,
+      feeCycleStartDate: student.feeCycleStartDate || student.admissionDate,
       monthlyFee: student.monthlyFee,
       assignedAt,
     };
@@ -398,11 +400,14 @@ class StaticDatabase {
     shift: Shift;
     locker: Locker;
     admissionDate: string;
+    feeCycleStartDate?: string;
     monthlyFee: number;
     seatNumber?: number | null;
   }): StudentWithSeat {
     const id = `std_${Date.now()}`;
     const createdAt = new Date().toISOString();
+    const feeCycleStartDate = payload.feeCycleStartDate || payload.admissionDate;
+
     const newStudent: StudentWithSeat = {
       id,
       name: payload.name,
@@ -411,6 +416,7 @@ class StaticDatabase {
       shift: payload.shift,
       locker: payload.locker,
       admissionDate: payload.admissionDate,
+      feeCycleStartDate,
       monthlyFee: payload.monthlyFee,
       status: StudentStatus.ACTIVE,
       createdAt,
@@ -422,19 +428,39 @@ class StaticDatabase {
 
     this.state.students.push(newStudent);
 
-    // Create default active billing period for new student
-    const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    // Create default active billing period using feeCycleStartDate
+    const cycleRange = calculateBillingPeriod(feeCycleStartDate, 0);
+    const periodStartIso = cycleRange.periodStart.toISOString();
+    const periodEndIso = cycleRange.periodEnd.toISOString();
+    const dueDateIso = cycleRange.dueDate.toISOString();
+
+    const nowCal = parseCalendarDate(new Date());
+    const dueCal = parseCalendarDate(cycleRange.dueDate);
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const utcA = Date.UTC(nowCal.year, nowCal.month - 1, nowCal.day);
+    const utcB = Date.UTC(dueCal.year, dueCal.month - 1, dueCal.day);
+    const daysRemaining = Math.round((utcB - utcA) / msPerDay);
+
+    let initialStatus: UserFacingFeeStatus = UserFacingFeeStatus.DUE;
+    if (daysRemaining < 0) {
+      initialStatus = UserFacingFeeStatus.OVERDUE;
+    } else if (daysRemaining === 0) {
+      initialStatus = UserFacingFeeStatus.DUE;
+    } else if (daysRemaining <= 5) {
+      initialStatus = UserFacingFeeStatus.DUE_SOON;
+    }
+
     const bp: BillingPeriodWithPayments = {
       id: `bp_${Date.now()}`,
       studentId: id,
-      periodStart: payload.admissionDate,
-      periodEnd: dueDate,
-      dueDate,
+      periodStart: periodStartIso,
+      periodEnd: periodEndIso,
+      dueDate: dueDateIso,
       amount: payload.monthlyFee,
       paidAmount: 0,
       outstanding: payload.monthlyFee,
-      status: UserFacingFeeStatus.DUE_SOON,
-      daysRemaining: 30,
+      status: initialStatus,
+      daysRemaining,
       student: {
         id,
         name: payload.name,
@@ -475,6 +501,7 @@ class StaticDatabase {
       shift?: Shift;
       locker?: Locker;
       admissionDate?: string;
+      feeCycleStartDate?: string;
       monthlyFee?: number;
     }
   ): StudentWithSeat {
@@ -777,6 +804,7 @@ class StaticDatabase {
           amount: bp.amount,
           paidAmount: bp.paidAmount,
           outstanding: bp.outstanding,
+          feeCycleStartDate: student?.feeCycleStartDate || bp.periodStart,
           dueDate: bp.dueDate,
           daysRemaining: bp.daysRemaining,
           status: bp.status,
@@ -1063,6 +1091,7 @@ class StaticDatabase {
           shift: s.shift,
           locker: s.locker,
           admissionDate: s.admissionDate,
+          feeCycleStartDate: s.feeCycleStartDate || s.admissionDate,
           monthlyFee: s.monthlyFee,
           status: s.status,
         }));
@@ -1089,6 +1118,7 @@ class StaticDatabase {
         const rows: AdmissionsReportRow[] = this.state.students.map((s) => ({
           studentId: s.id,
           admissionDate: s.admissionDate,
+          feeCycleStartDate: s.feeCycleStartDate || s.admissionDate,
           studentName: s.name,
           seatNumber: s.currentSeat?.seatNumber ?? null,
           shift: s.shift,

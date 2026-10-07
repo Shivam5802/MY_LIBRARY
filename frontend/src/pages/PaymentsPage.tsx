@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useSearchParams } from 'react-router-dom';
 import { BillingService } from '../services/billing.service';
 import type { BillingPeriodWithPayments, PaymentDto } from '../types/auth';
 import { RecordPaymentModal } from '../components/RecordPaymentModal';
 import { WhatsAppReminderModal } from '../components/WhatsAppReminderModal';
+import { formatDate } from '../utils/dateUtils';
 import {
   CreditCard,
   Search,
@@ -18,6 +19,8 @@ import {
 } from 'lucide-react';
 
 export const PaymentsPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const urlStatus = searchParams.get('status');
   const [activeTab, setActiveTab] = useState<'PERIODS' | 'TRANSACTIONS'>('PERIODS');
   const [periods, setPeriods] = useState<BillingPeriodWithPayments[]>([]);
   const [payments, setPayments] = useState<PaymentDto[]>([]);
@@ -25,9 +28,15 @@ export const PaymentsPage: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Filters
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<string>(urlStatus || 'ALL');
   const [search, setSearch] = useState<string>('');
   const [shiftFilter, setShiftFilter] = useState<string>('');
+
+  useEffect(() => {
+    if (urlStatus) {
+      setStatusFilter(urlStatus);
+    }
+  }, [urlStatus]);
 
   // Modals
   const [selectedPeriodForPayment, setSelectedPeriodForPayment] =
@@ -280,10 +289,10 @@ export const PaymentsPage: React.FC = () => {
                       </td>
                       <td className="py-3 px-4">
                         <span className="text-slate-800 dark:text-slate-200">
-                          {new Date(period.periodStart).toLocaleDateString()} – {new Date(period.periodEnd).toLocaleDateString()}
+                          {formatDate(period.periodStart)} – {formatDate(period.periodEnd)}
                         </span>
                         <span className="block text-[10px] text-slate-400 dark:text-slate-500">
-                          Due: {new Date(period.dueDate).toLocaleDateString()}
+                          Due: {formatDate(period.dueDate)}
                         </span>
                       </td>
                       <td className="py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
@@ -352,7 +361,10 @@ export const PaymentsPage: React.FC = () => {
                     <div>
                       <span className="text-slate-500 block">Cycle:</span>
                       <span className="font-medium text-slate-700 dark:text-slate-300">
-                        {new Date(period.periodStart).toLocaleDateString()} – {new Date(period.periodEnd).toLocaleDateString()}
+                        {formatDate(period.periodStart)} – {formatDate(period.periodEnd)}
+                      </span>
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 block">
+                        Due: {formatDate(period.dueDate)}
                       </span>
                     </div>
                     <div>
@@ -432,7 +444,7 @@ export const PaymentsPage: React.FC = () => {
                     {p.studentName || 'Student'} {p.seatNumber ? `(Seat #${p.seatNumber})` : ''}
                   </td>
                   <td className="py-3 px-4 font-black text-emerald-600 dark:text-emerald-400">₹{p.amount.toLocaleString('en-IN')}</td>
-                  <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{new Date(p.paymentDate).toLocaleDateString()}</td>
+                  <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{formatDate(p.paymentDate)}</td>
                   <td className="py-3 px-4">
                     <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-semibold">
                       {p.paymentMethod}

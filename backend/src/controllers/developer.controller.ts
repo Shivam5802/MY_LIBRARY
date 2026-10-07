@@ -426,6 +426,7 @@ export class DeveloperController {
           'Shift',
           'Locker',
           'Admission Date',
+          'Fee Cycle Start Date',
           'Monthly Fee (INR)',
           'Status',
         ];
@@ -436,6 +437,7 @@ export class DeveloperController {
           r.shift,
           r.locker,
           TimezoneUtils.formatToIstDisplay(r.admissionDate),
+          TimezoneUtils.formatToIstDisplay(r.feeCycleStartDate),
           r.monthlyFee,
           r.status,
         ]);

@@ -16,6 +16,7 @@ export interface CreateStudentInput {
   shift: Shift;
   locker: Locker;
   admissionDate: string;
+  feeCycleStartDate?: string;
   monthlyFee: number;
   seatNumber?: number | null;
 }
@@ -27,6 +28,7 @@ export interface UpdateStudentInput {
   shift?: Shift;
   locker?: Locker;
   admissionDate?: string;
+  feeCycleStartDate?: string;
   monthlyFee?: number;
 }
 
@@ -117,6 +119,7 @@ export class StudentService {
         shift: s.shift as Shift,
         locker: s.locker as Locker,
         admissionDate: s.admissionDate.toISOString(),
+        feeCycleStartDate: s.feeCycleStartDate.toISOString(),
         monthlyFee: Number(s.monthlyFee),
         status: s.status as StudentStatus,
         createdAt: s.createdAt.toISOString(),
@@ -167,6 +170,7 @@ export class StudentService {
       shift: student.shift as Shift,
       locker: student.locker as Locker,
       admissionDate: student.admissionDate.toISOString(),
+      feeCycleStartDate: student.feeCycleStartDate.toISOString(),
       monthlyFee: Number(student.monthlyFee),
       status: student.status as StudentStatus,
       createdAt: student.createdAt.toISOString(),
@@ -207,6 +211,12 @@ export class StudentService {
       }
 
       // 2. Create Student with permanent unique UUID
+      // 2. Create Student with permanent unique UUID
+      const admissionDateObj = new Date(input.admissionDate);
+      const feeCycleStartDateObj = input.feeCycleStartDate
+        ? new Date(input.feeCycleStartDate)
+        : admissionDateObj;
+
       const student = await tx.student.create({
         data: {
           name: input.name,
@@ -214,7 +224,8 @@ export class StudentService {
           photoUrl: input.photoUrl,
           shift: input.shift,
           locker: input.locker,
-          admissionDate: new Date(input.admissionDate),
+          admissionDate: admissionDateObj,
+          feeCycleStartDate: feeCycleStartDateObj,
           monthlyFee: input.monthlyFee,
           status: StudentStatus.ACTIVE,
         },
@@ -245,13 +256,14 @@ export class StudentService {
         };
       }
 
-      // 4. Initialize first recurring billing period anchored to admissionDate
-      const firstCycleRange = BillingDateUtils.getBillingPeriodRange(student.admissionDate, 0);
+      // 4. Initialize first recurring billing period anchored to feeCycleStartDate
+      const firstCycleRange = BillingDateUtils.getBillingPeriodRange(student.feeCycleStartDate, 0);
       await tx.billingPeriod.create({
         data: {
           studentId: student.id,
           periodStart: firstCycleRange.periodStart,
           periodEnd: firstCycleRange.periodEnd,
+          dueDate: firstCycleRange.dueDate,
           amount: student.monthlyFee,
           status: 'PENDING',
           shiftSnapshot: student.shift,
@@ -271,6 +283,8 @@ export class StudentService {
             shift: student.shift,
             locker: student.locker,
             seatNumber: targetSeat?.seatNumber ?? null,
+            admissionDate: student.admissionDate.toISOString(),
+            feeCycleStartDate: student.feeCycleStartDate.toISOString(),
           }),
         },
       });
@@ -283,6 +297,7 @@ export class StudentService {
         shift: student.shift as Shift,
         locker: student.locker as Locker,
         admissionDate: student.admissionDate.toISOString(),
+        feeCycleStartDate: student.feeCycleStartDate.toISOString(),
         monthlyFee: Number(student.monthlyFee),
         status: student.status as StudentStatus,
         createdAt: student.createdAt.toISOString(),
@@ -301,11 +316,12 @@ export class StudentService {
             ]
           : [],
       };
-    });
+    }, { maxWait: 10000, timeout: 25000 });
   }
 
   /**
    * Updates non-seat student information.
+   * Changing Fee Cycle Start Date does NOT modify historical payments or completed billing periods.
    */
   static async updateStudent(id: string, input: UpdateStudentInput): Promise<StudentWithSeat> {
     const updateData: any = {};
@@ -315,6 +331,7 @@ export class StudentService {
     if (input.shift !== undefined) updateData.shift = input.shift;
     if (input.locker !== undefined) updateData.locker = input.locker;
     if (input.admissionDate !== undefined) updateData.admissionDate = new Date(input.admissionDate);
+    if (input.feeCycleStartDate !== undefined) updateData.feeCycleStartDate = new Date(input.feeCycleStartDate);
     if (input.monthlyFee !== undefined) updateData.monthlyFee = input.monthlyFee;
 
     await prisma.student.update({
@@ -385,7 +402,7 @@ export class StudentService {
     const updated = await this.getStudentById(id);
     if (!updated) throw new Error('Student not found.');
     return updated;
-  });
+  }, { maxWait: 10000, timeout: 25000 });
 }
 
 /**

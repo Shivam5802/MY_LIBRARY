@@ -5,6 +5,7 @@ import { SeatService } from '../services/seat.service';
 import type { StudentWithSeat, SeatWithStudent } from '../types/auth';
 import { Shift, Locker, StudentStatus } from '../types/auth';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { formatDate } from '../utils/dateUtils';
 import {
   Users,
   Search,
@@ -386,7 +387,10 @@ export const StudentsListPage: React.FC = () => {
                         )}
                       </td>
                       <td className="py-3 px-4 text-slate-600 dark:text-slate-400">
-                        {new Date(student.admissionDate).toLocaleDateString()}
+                        <div>{formatDate(student.admissionDate)}</div>
+                        {student.feeCycleStartDate && student.feeCycleStartDate !== student.admissionDate && (
+                          <div className="text-[10px] text-indigo-500">Cycle: {formatDate(student.feeCycleStartDate)}</div>
+                        )}
                       </td>
                       <td className="py-3 px-4 font-semibold text-slate-900 dark:text-slate-200">
                         ₹{student.monthlyFee.toLocaleString('en-IN')}
@@ -531,7 +535,7 @@ export const StudentsListPage: React.FC = () => {
                     <div>
                       <span className="text-slate-500 block">Admission:</span>
                       <span className="font-medium text-slate-700 dark:text-slate-300">
-                        {new Date(student.admissionDate).toLocaleDateString()}
+                        {formatDate(student.admissionDate)}
                       </span>
                     </div>
                     <div>

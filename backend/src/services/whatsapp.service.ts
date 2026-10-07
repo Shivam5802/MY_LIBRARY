@@ -1,5 +1,6 @@
 import { prisma } from '../config/prisma.js';
 import { BillingService } from './billing.service.js';
+import { BillingDateUtils } from '../utils/billing-date.js';
 import { FeeReminderItem, UserFacingFeeStatus } from '../types/index.js';
 
 export const DEFAULT_FEE_REMINDER_MESSAGE =
@@ -166,13 +167,11 @@ export class WhatsAppReminderService {
     const totalPaid = period.payments.reduce((s, p) => s + Number(p.amount), 0);
     const outstanding = Math.max(0, Number(period.amount) - totalPaid);
 
-    // Format dueDate into Indian locale string: e.g. "11 Oct 2026"
-    const dueDateStr = new Intl.DateTimeFormat('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      timeZone: 'Asia/Kolkata',
-    }).format(period.periodEnd);
+    // Calculate centralized due date and format as DD-MM-YYYY
+    const dueDateDate =
+      period.dueDate ||
+      new Date(period.periodEnd.getTime() + 24 * 60 * 60 * 1000);
+    const dueDateStr = BillingDateUtils.formatDate(dueDateDate);
 
     const formattedMessage = this.formatMessage(template, {
       name: period.student.name,

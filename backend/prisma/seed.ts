@@ -1,7 +1,9 @@
 import { PrismaClient, Role, SeatStatus, Shift, Locker, StudentStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
+import dns from 'dns';
 
+dns.setDefaultResultOrder('ipv4first');
 dotenv.config();
 
 const prisma = new PrismaClient();

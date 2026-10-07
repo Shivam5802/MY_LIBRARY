@@ -214,6 +214,7 @@ export class ReportsService {
         shift: s.shift as Shift,
         locker: s.locker as Locker,
         admissionDate: s.admissionDate.toISOString(),
+        feeCycleStartDate: s.feeCycleStartDate.toISOString(),
         monthlyFee: Number(s.monthlyFee),
         status: s.status as StudentStatus,
       };
@@ -306,6 +307,7 @@ export class ReportsService {
       return {
         studentId: s.id,
         admissionDate: s.admissionDate.toISOString(),
+        feeCycleStartDate: s.feeCycleStartDate.toISOString(),
         studentName: s.name,
         seatNumber: currentSeat?.seat?.seatNumber ?? null,
         shift: s.shift as Shift,

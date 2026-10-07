@@ -12,13 +12,14 @@ MY LIBRARY is a responsive library and study-center management system engineered
 - **Profile Photo Crop & Adjust**: Built-in canvas-based circular avatar cropping modal with zoom (50%–300%), 90-degree rotation, and pan adjustments.
 - **Seat Assignment & Transfer**: Direct seat allocation, one-click seat vacation, and atomic seat transfer with history tracking.
 - **Student Archive, Restore & Permanent Removal**: Safe student archiving that automatically vacates seats while preserving financial history, student restoration, and permanent removal option.
-- **Admission-Date-Based Billing**: Automatic recurring billing cycles tied directly to each student's admission date (e.g., 12 Sep → 11 Oct) with automatic month-end clipping (28th–31st).
+- **Fee Cycle Start Date & Due Date Architecture**: Strict architectural separation between `Admission Date` (when the student was admitted) and `Fee Cycle Start Date` (when recurring monthly fee counting begins). Due Date is the next monthly anniversary (1 month after cycle start). Billing periods run from the cycle start date through 1 day before the next monthly anniversary (inclusive), with deterministic month-end clipping (28th–31st, leap-year aware).
 - **Payment Tracking & Audit Receipts**: Transactional payment recording supporting `CASH`, `UPI`, and `OTHER`, sequential receipt numbers (`RCP-YYYYMMDD-XXXX`), and zero overpayment enforcement.
 - **Partial Payments**: Comprehensive split and partial payment support with live balance recalculation and status transition (`PARTIALLY_PAID`).
-- **Fee Status Tracking**: Dynamic calculation of user-facing fee statuses: `PAID`, `DUE_SOON` (within 5 days), `DUE` (due today), and `OVERDUE`.
+- **5-Day Dashboard Alert & Real-Time Status**: Dynamic calculation of user-facing fee statuses: `PAID`, `DUE_SOON` (within 5 days before Due Date), `DUE` (on Due Date), and `OVERDUE` (past Due Date). High-visibility alert cards and clickable metric on Owner Dashboard (`/owner/payments?status=DUE_SOON`).
+- **Strict DD-MM-YYYY Date Standardization**: Every single date displayed across the application and generated in WhatsApp reminders is strictly formatted as `DD-MM-YYYY` (e.g., `10-09-2026`).
 - **5-Day Fee Reminders**: Proactive reminder queue filtering students whose fee due date is within 5 days or past due.
 - **WhatsApp Click-to-Chat Reminders**: Direct WhatsApp link generation with Indian number normalization (`+91`) and customizable message templates with tokens (`{name}`, `{amount}`, `{dueDate}`).
-- **Owner Dashboard**: High-level operational stats (total, occupied, and available seats, active and archived students, fee alerts, recent activity).
+- **Owner Dashboard**: High-level operational stats (total, occupied, and available seats, active and archived students, 5-day fee due soon alert card, recent activity).
 - **Developer Dashboard & Analytics**: Lifetime, today's, current month, previous month, and current year income metrics, 12-month income trends, and payment method breakdowns.
 - **Centralized Reports**: 8 comprehensive operational and financial report categories (Income, Pending Fees, Student Directory, Seat Occupancy, Admissions, Shift Breakdown, Locker Usage, and Monthly Summary).
 - **Multi-Format Exports**: Client-side and server-side export engine generating clean **CSV** (UTF-8 BOM), **Excel** (.xlsx multi-sheet workbooks), and printable **PDF** reports.

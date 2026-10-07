@@ -4,27 +4,47 @@ import { StudentService } from '../services/student.service.js';
 import { Shift, Locker, StudentStatus } from '../types/index.js';
 import { sendSuccess, sendError } from '../utils/response.js';
 
-export const createStudentSchema = z.object({
-  name: z.string().trim().min(2, 'Name must be at least 2 characters.'),
-  mobile: z
-    .string()
-    .trim()
-    .min(10, 'Mobile number must be at least 10 digits.')
-    .max(15, 'Mobile number too long.')
-    .regex(/^[0-9+\-\s]+$/, 'Invalid mobile number format.'),
-  photoUrl: z.string().nullable().optional(),
-  shift: z.enum([Shift.MORNING, Shift.EVENING, Shift.FULL_DAY], {
-    errorMap: () => ({ message: 'Shift must be MORNING, EVENING, or FULL_DAY.' }),
-  }),
-  locker: z.enum([Locker.WITH_LOCKER, Locker.WITHOUT_LOCKER], {
-    errorMap: () => ({ message: 'Locker must be WITH_LOCKER or WITHOUT_LOCKER.' }),
-  }),
-  admissionDate: z.string().refine((d) => !isNaN(Date.parse(d)), {
-    message: 'Valid admission date is required.',
-  }),
-  monthlyFee: z.number().nonnegative('Monthly fee must be a non-negative amount.'),
-  seatNumber: z.number().int().min(1).max(92).nullable().optional(),
-});
+export const createStudentSchema = z
+  .object({
+    name: z.string().trim().min(2, 'Name must be at least 2 characters.'),
+    mobile: z
+      .string()
+      .trim()
+      .min(10, 'Mobile number must be at least 10 digits.')
+      .max(15, 'Mobile number too long.')
+      .regex(/^[0-9+\-\s]+$/, 'Invalid mobile number format.'),
+    photoUrl: z.string().nullable().optional(),
+    shift: z.enum([Shift.MORNING, Shift.EVENING, Shift.FULL_DAY], {
+      errorMap: () => ({ message: 'Shift must be MORNING, EVENING, or FULL_DAY.' }),
+    }),
+    locker: z.enum([Locker.WITH_LOCKER, Locker.WITHOUT_LOCKER], {
+      errorMap: () => ({ message: 'Locker must be WITH_LOCKER or WITHOUT_LOCKER.' }),
+    }),
+    admissionDate: z.string().refine((d) => !isNaN(Date.parse(d)), {
+      message: 'Valid admission date is required.',
+    }),
+    feeCycleStartDate: z
+      .string()
+      .refine((d) => !isNaN(Date.parse(d)), {
+        message: 'Valid fee cycle start date is required.',
+      })
+      .optional(),
+    monthlyFee: z.number().positive('Monthly fee must be greater than zero.'),
+    seatNumber: z.number().int().min(1).max(92).nullable().optional(),
+  })
+  .refine(
+    (data) => {
+      if (!data.feeCycleStartDate) return true;
+      const adm = new Date(data.admissionDate).getTime();
+      const fee = new Date(data.feeCycleStartDate).getTime();
+      // Requirement: Fee Cycle Start Date >= Admission Date
+      return fee >= adm;
+    },
+    {
+      message: 'Fee Cycle Start Date must be on or after Admission Date.',
+      path: ['feeCycleStartDate'],
+    }
+  );
 
 export const updateStudentSchema = z.object({
   name: z.string().trim().min(2).optional(),
@@ -42,7 +62,11 @@ export const updateStudentSchema = z.object({
     .string()
     .refine((d) => !isNaN(Date.parse(d)))
     .optional(),
-  monthlyFee: z.number().nonnegative().optional(),
+  feeCycleStartDate: z
+    .string()
+    .refine((d) => !isNaN(Date.parse(d)))
+    .optional(),
+  monthlyFee: z.number().positive('Monthly fee must be greater than zero.').optional(),
 });
 
 export class StudentController {

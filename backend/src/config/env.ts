@@ -1,4 +1,8 @@
 import dotenv from 'dotenv';
+import dns from 'dns';
+
+// Ensure IPv4 lookup priority for Node.js on dual-stack networks (fixes Render PG timeouts)
+dns.setDefaultResultOrder('ipv4first');
 
 // Load environment variables from .env
 dotenv.config();

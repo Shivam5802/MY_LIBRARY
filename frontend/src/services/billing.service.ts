@@ -5,6 +5,7 @@ import type {
   PaymentMethod,
 } from '../types/auth';
 import { staticDb } from '../mock/staticData';
+import { formatDate } from '../utils/dateUtils';
 
 export interface RecordPaymentPayload {
   studentId: string;
@@ -89,7 +90,7 @@ export class BillingService {
 
     const template = staticDb.getReminderTemplate();
     const amountStr = bp ? `₹${bp.outstanding}` : 'your pending fee';
-    const dueDateStr = bp ? bp.dueDate : 'soon';
+    const dueDateStr = bp ? formatDate(bp.dueDate) : 'soon';
 
     const formattedMessage = template
       .replace(/{{studentName}}/g, student.name)

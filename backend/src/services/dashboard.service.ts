@@ -11,14 +11,11 @@ export class DashboardService {
   static async getOwnerStats(): Promise<OwnerDashboardStats> {
     const totalSeats = 92;
 
-    const [occupiedSeats, activeStudents, archivedStudents, allPeriods, allPayments] =
-      await Promise.all([
-        prisma.seat.count({ where: { status: SeatStatus.OCCUPIED } }),
-        prisma.student.count({ where: { status: StudentStatus.ACTIVE } }),
-        prisma.student.count({ where: { status: StudentStatus.ARCHIVED } }),
-        BillingService.getAllBillingPeriods(),
-        prisma.payment.findMany({ select: { amount: true } }),
-      ]);
+    const occupiedSeats = await prisma.seat.count({ where: { status: SeatStatus.OCCUPIED } });
+    const activeStudents = await prisma.student.count({ where: { status: StudentStatus.ACTIVE } });
+    const archivedStudents = await prisma.student.count({ where: { status: StudentStatus.ARCHIVED } });
+    const allPeriods = await BillingService.getAllBillingPeriods();
+    const allPayments = await prisma.payment.findMany({ select: { amount: true } });
 
     const availableSeats = Math.max(0, totalSeats - occupiedSeats);
 

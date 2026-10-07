@@ -14,7 +14,15 @@ export interface CalculatedFeeStatus {
 
 export class FeeStatusService {
   /**
-   * Calculates real-time fee status for a billing period given its payments and reference date.
+   * Calculates real-time fee status for a billing period given its payments, dueDate, and reference date.
+   * Status should be calculated relative to the billing period's actual due date (Due Date - Current Date).
+   *
+   * If fully paid: PAID
+   * If partially paid: PARTIALLY_PAID (when daysRemaining > 0) or OVERDUE (if daysRemaining < 0)
+   * If unpaid and more than 5 days remain: DUE (normal upcoming/due status)
+   * If 5 or fewer days remain before due date (5, 4, 3, 2, 1): DUE_SOON
+   * If today is the due date (0 days remaining) and balance remains: DUE
+   * If due date has passed (< 0 days remaining) and balance remains: OVERDUE
    */
   static calculateStatus(
     periodStart: Date,
@@ -22,33 +30,38 @@ export class FeeStatusService {
     amount: number,
     paidAmount: number,
     referenceDate: Date = new Date(),
-    thresholdDays: number = 5
+    thresholdDays: number = 5,
+    dueDateParam?: Date | null
   ): CalculatedFeeStatus {
     const outstanding = Math.max(0, amount - paidAmount);
-    const dueDate = periodEnd;
+
+    // If dueDate not explicitly provided, calculate deterministic anniversary (next day after periodEnd)
+    const dueDate = dueDateParam || new Date(periodEnd.getTime() + 24 * 60 * 60 * 1000);
 
     const refCal = BillingDateUtils.parseCalendarDate(referenceDate);
-    const endCal = BillingDateUtils.parseCalendarDate(periodEnd);
+    const dueCal = BillingDateUtils.parseCalendarDate(dueDate);
 
-    // Days remaining = endCal - refCal (inclusive countdown)
-    const daysRemaining = BillingDateUtils.diffInDays(refCal, endCal);
+    // Days remaining = Due Date - Current Date (in Asia/Kolkata timezone)
+    const daysRemaining = BillingDateUtils.diffInDays(refCal, dueCal);
 
     let status: UserFacingFeeStatus;
 
     if (outstanding <= 0.001) {
       status = UserFacingFeeStatus.PAID;
-    } else if (paidAmount > 0 && daysRemaining > 0) {
-      status = UserFacingFeeStatus.PARTIALLY_PAID;
     } else if (daysRemaining < 0) {
-      // Period has ended and money is unpaid
+      // Due date has passed and balance remains
       status = UserFacingFeeStatus.OVERDUE;
     } else if (daysRemaining === 0) {
-      // Exactly on the due date
+      // Today is the due date and balance remains
       status = UserFacingFeeStatus.DUE;
+    } else if (paidAmount > 0) {
+      // Partially paid and still before due date
+      status = UserFacingFeeStatus.PARTIALLY_PAID;
     } else if (daysRemaining <= thresholdDays) {
-      // Within reminder window (e.g. 5 days or fewer)
+      // 5 or fewer days remain before due date (5, 4, 3, 2, 1)
       status = UserFacingFeeStatus.DUE_SOON;
     } else {
+      // More than 5 days remain
       status = UserFacingFeeStatus.DUE;
     }
 

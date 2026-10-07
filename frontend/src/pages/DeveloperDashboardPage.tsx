@@ -29,6 +29,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
+import { formatDate } from '../utils/dateUtils';
 
 export const DeveloperDashboardPage: React.FC = () => {
   const { resolvedTheme } = useTheme();
@@ -455,11 +456,7 @@ export const DeveloperDashboardPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
-                        {new Date(p.paymentDate).toLocaleDateString('en-IN', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
+                        {formatDate(p.paymentDate)}
                       </td>
                     </tr>
                   ))
@@ -491,13 +488,7 @@ export const DeveloperDashboardPage: React.FC = () => {
                     <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold">
                       {p.paymentMethod}
                     </span>
-                    <span>
-                      {new Date(p.paymentDate).toLocaleDateString('en-IN', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </span>
+                    <span>{formatDate(p.paymentDate)}</span>
                   </div>
                 </div>
               ))

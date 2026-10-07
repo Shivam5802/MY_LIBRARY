@@ -12,6 +12,7 @@ import type {
 import { StatCard } from '../components/StatCard';
 import { WhatsAppReminderModal } from '../components/WhatsAppReminderModal';
 import { RecordPaymentModal } from '../components/RecordPaymentModal';
+import { formatDate } from '../utils/dateUtils';
 import {
   Armchair,
   CheckCircle2,
@@ -184,29 +185,59 @@ export const OwnerDashboardPage: React.FC = () => {
         />
       </div>
 
-      {/* Real-time Fee Status Metric Cards */}
+      {/* Real-time Fee Status Metric Cards (Clickable to filtered register) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4">
-        <StatCard
-          title="Fees Due Soon (≤ 5 Days)"
-          value={stats?.feesDueSoon ?? 0}
-          subtitle="Reminder window"
-          icon={<Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
-          variant="info"
-        />
-        <StatCard
-          title="Fees Due Today"
-          value={stats?.feesDue ?? 0}
-          subtitle="Due on cycle anniversary"
-          icon={<DollarSign className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
-          variant="default"
-        />
-        <StatCard
-          title="Fees Overdue"
-          value={stats?.feesOverdue ?? 0}
-          subtitle="Past billing cycle"
-          icon={<AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />}
-          variant="danger"
-        />
+        <div
+          onClick={() => navigate('/owner/payments?status=DUE_SOON')}
+          className="cursor-pointer transition-transform hover:-translate-y-0.5"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') navigate('/owner/payments?status=DUE_SOON');
+          }}
+        >
+          <StatCard
+            title="Fee Due Soon (≤ 5 Days)"
+            value={`${stats?.feesDueSoon ?? 0} Students`}
+            subtitle="Click to view due-soon list"
+            icon={<Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
+            variant="info"
+          />
+        </div>
+        <div
+          onClick={() => navigate('/owner/payments?status=DUE')}
+          className="cursor-pointer transition-transform hover:-translate-y-0.5"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') navigate('/owner/payments?status=DUE');
+          }}
+        >
+          <StatCard
+            title="Fees Due Today"
+            value={`${stats?.feesDue ?? 0} Students`}
+            subtitle="Due on cycle anniversary"
+            icon={<DollarSign className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
+            variant="default"
+          />
+        </div>
+        <div
+          onClick={() => navigate('/owner/payments?status=OVERDUE')}
+          className="cursor-pointer transition-transform hover:-translate-y-0.5"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') navigate('/owner/payments?status=OVERDUE');
+          }}
+        >
+          <StatCard
+            title="Fees Overdue"
+            value={`${stats?.feesOverdue ?? 0} Students`}
+            subtitle="Past fee due date"
+            icon={<AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />}
+            variant="danger"
+          />
+        </div>
       </div>
 
       {/* Fee Reminders Alert Section (Dynamic 5-Day Window) */}
@@ -242,34 +273,60 @@ export const OwnerDashboardPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {reminders.map((rem) => {
               const isOverdue = rem.status === 'OVERDUE';
+              const isDueToday = rem.daysRemaining === 0;
+              const badgeText = isOverdue
+                ? 'OVERDUE'
+                : isDueToday
+                ? 'DUE TODAY'
+                : `${rem.daysRemaining} days remaining`;
+
               return (
                 <div
                   key={rem.billingPeriodId}
-                  className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 flex flex-col justify-between space-y-3 transition-colors"
+                  className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 flex flex-col justify-between space-y-3 transition-colors hover:border-amber-400 dark:hover:border-amber-500/50"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h4 className="font-bold text-slate-900 dark:text-white text-sm">{rem.studentName}</h4>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        {rem.seatNumber ? `Seat #${rem.seatNumber}` : 'Unassigned'} • {rem.mobile}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-amber-600 dark:text-amber-400 font-bold text-xs">⚠ Fee Due Soon</span>
+                      </div>
+                      <h4 className="font-bold text-slate-900 dark:text-white text-base mt-0.5">{rem.studentName}</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                        {rem.seatNumber ? `Seat ${rem.seatNumber}` : 'Seat Unassigned'} • {rem.mobile}
                       </p>
                     </div>
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      className={`text-[10px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap ${
                         isOverdue
                           ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30'
-                          : 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30'
+                          : isDueToday
+                          ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30'
+                          : 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30'
                       }`}
                     >
-                      {isOverdue ? 'OVERDUE' : `${rem.daysRemaining}d left`}
+                      {badgeText}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                    <span className="text-slate-500 dark:text-slate-400">Outstanding:</span>
-                    <span className="font-bold text-rose-600 dark:text-rose-400">
-                      ₹{rem.outstanding.toLocaleString('en-IN')}
-                    </span>
+                  <div className="space-y-1 text-xs py-2 px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 dark:text-slate-400">Due Date:</span>
+                      <strong className="text-slate-900 dark:text-white font-mono">
+                        {formatDate(rem.dueDate)}
+                      </strong>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 dark:text-slate-400">Amount:</span>
+                      <strong className="text-rose-600 dark:text-rose-400 font-bold">
+                        ₹{rem.outstanding.toLocaleString('en-IN')}
+                      </strong>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5 border-t border-slate-100 dark:border-slate-800">
+                      <span>Status:</span>
+                      <span className="font-semibold text-amber-600 dark:text-amber-400">
+                        {rem.daysRemaining > 0 ? `${rem.daysRemaining} days remaining` : isDueToday ? 'Due Today' : 'Overdue'}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-1.5 pt-1">

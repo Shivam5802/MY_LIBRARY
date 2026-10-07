@@ -43,16 +43,11 @@ export class TimezoneUtils {
   }
 
   /**
-   * Formats a Date into Indian Display Date string (e.g., "12 Oct 2026")
+   * Formats a Date into Indian Display Date string strictly as DD-MM-YYYY
+   * (e.g., "10-09-2026")
    */
   static formatToIstDisplay(date: Date | string): string {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    return new Intl.DateTimeFormat('en-IN', {
-      timeZone: this.TIMEZONE,
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    }).format(d);
+    return BillingDateUtils.formatDate(date);
   }
 
   /**

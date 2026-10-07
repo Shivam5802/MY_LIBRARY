@@ -2,17 +2,28 @@
  * Dedicated Indian Library Billing Date Engine
  *
  * Rules:
- * 1. Calendar cycles anchor to individual student admission dates (e.g. 12th of month -> 12th of next month - 1 day).
- * 2. Cycle starts on day `D` of month `M1`, ends on day `D-1` of month `M2` (inclusive).
- *    Example: 12 Sep -> 11 Oct. Next cycle: 12 Oct -> 11 Nov.
+ * 1. Admission Date and Fee Cycle Start Date are separate concepts:
+ *    - admissionDate = actual student admission date
+ *    - feeCycleStartDate = date from which monthly fee counting starts
+ * 2. Recurring billing periods anchor strictly to `feeCycleStartDate`:
+ *    - Cycle N starts on `feeCycleStartDate` + N months (clipped if month is shorter)
+ *    - Cycle N ends on ONE DAY BEFORE the next monthly anniversary (inclusive)
+ *    - Cycle N due date is the NEXT MONTHLY ANNIVERSARY
+ *    Example:
+ *      Fee Cycle Start: 15-09-2026
+ *      Cycle 0: 15-09-2026 -> 14-10-2026, Due Date: 15-10-2026
+ *      Cycle 1: 15-10-2026 -> 14-11-2026, Due Date: 15-11-2026
+ *      Cycle 2: 15-11-2026 -> 14-12-2026, Due Date: 15-12-2026
  * 3. Month End / Short Month Edge cases (28, 29, 30, 31):
- *    - If target month has fewer days than anchor day D, anchor clips to last day of that month.
- *    - Example: Admission 31 Jan -> Next cycle starts 28/29 Feb, period end is (28/29 Feb - 1 day? NO:
- *      A cycle runs from 31 Jan to the day before the next anchor date).
- *      If Next Anchor is 28 Feb, period is 31 Jan -> 27 Feb.
- *      If admission is 31 Jan, next anchor is 28 Feb (or 29 in leap year).
- *      Next anchor after Feb is 31 Mar. So Feb period is 28 Feb -> 30 Mar.
- * 4. Calculations use calendar dates (YYYY-MM-DD) without timezone shifts.
+ *    - If target month has fewer days than anchor day D, anchor clips to the last valid day of that month.
+ *    - Example: 31-01-2026
+ *      Next monthly anniversary clips to 28-02-2026 (or 29-02 in a leap year).
+ *      Cycle 0: 31-01-2026 -> 27-02-2026 (or 28-02 in leap year). Due Date: 28-02-2026 (or 29-02 in leap year).
+ *      Cycle 1: 28-02-2026 -> 30-03-2026. Due Date: 31-03-2026.
+ *    - 30-01-2026:
+ *      Next monthly anniversary clips to 28-02-2026 (29-02 in leap year).
+ * 4. Calculations use calendar dates (YYYY-MM-DD) in Asia/Kolkata timezone without timezone shifts.
+ * 5. Display presentation formats strictly to DD-MM-YYYY across the system.
  */
 
 export interface CalendarDate {
@@ -24,7 +35,7 @@ export interface CalendarDate {
 export interface BillingPeriodRange {
   periodStart: Date;
   periodEnd: Date;
-  dueDate: Date; // Last day of billing period
+  dueDate: Date; // Next monthly anniversary date
 }
 
 export class BillingDateUtils {
@@ -36,7 +47,7 @@ export class BillingDateUtils {
   }
 
   /**
-   * Parses Date or ISO string into CalendarDate (in Asia/Kolkata or UTC date space)
+   * Parses Date or ISO string into CalendarDate (in Asia/Kolkata timezone)
    */
   static parseCalendarDate(dateInput: Date | string): CalendarDate {
     const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
@@ -62,7 +73,7 @@ export class BillingDateUtils {
   }
 
   /**
-   * Formats CalendarDate as YYYY-MM-DD
+   * Formats CalendarDate as YYYY-MM-DD (ISO date string)
    */
   static toDateString(cal: CalendarDate): string {
     const m = String(cal.month).padStart(2, '0');
@@ -71,16 +82,31 @@ export class BillingDateUtils {
   }
 
   /**
-   * Computes the N-th cycle anniversary start date given anchorDay (1-31) and admission year/month.
-   * cycleIndex: 0 = admission cycle, 1 = 1 month later, etc.
+   * Formats Date, string, or CalendarDate strictly as DD-MM-YYYY
    */
-  static getCycleStartDate(admissionCal: CalendarDate, cycleIndex: number): CalendarDate {
-    const totalMonths = admissionCal.year * 12 + (admissionCal.month - 1) + cycleIndex;
+  static formatDate(dateInput: Date | string | CalendarDate | null | undefined): string {
+    if (!dateInput) return '—';
+    const cal =
+      typeof dateInput === 'object' && dateInput !== null && 'year' in dateInput && 'month' in dateInput && 'day' in dateInput
+        ? (dateInput as CalendarDate)
+        : this.parseCalendarDate(dateInput as Date | string);
+    const d = String(cal.day).padStart(2, '0');
+    const m = String(cal.month).padStart(2, '0');
+    return `${d}-${m}-${cal.year}`;
+  }
+
+  /**
+   * Computes the N-th cycle anniversary date given feeCycleStartDate.
+   * cycleIndex: 0 = start date, 1 = 1 month later, etc.
+   * Clips day to last valid day of target month if target month is shorter.
+   */
+  static getCycleStartDate(feeCycleStartCal: CalendarDate, cycleIndex: number): CalendarDate {
+    const totalMonths = feeCycleStartCal.year * 12 + (feeCycleStartCal.month - 1) + cycleIndex;
     const targetYear = Math.floor(totalMonths / 12);
     const targetMonth = (totalMonths % 12) + 1; // 1-12
     const maxDays = this.getDaysInMonth(targetYear, targetMonth);
-    // Clip anchor day if month is shorter
-    const targetDay = Math.min(admissionCal.day, maxDays);
+    // Clip anchor day if month is shorter (e.g. 31 Jan -> 28 Feb)
+    const targetDay = Math.min(feeCycleStartCal.day, maxDays);
     return { year: targetYear, month: targetMonth, day: targetDay };
   }
 
@@ -108,21 +134,29 @@ export class BillingDateUtils {
   }
 
   /**
-   * Computes cycle start and end for cycleIndex.
-   * Cycle N ends on the day immediately preceding Cycle N+1's start date.
+   * Computes cycle start, period end, and due date for cycleIndex.
+   * - periodStart = cycleIndex monthly anniversary
+   * - dueDate = (cycleIndex + 1) monthly anniversary (1 month later)
+   * - periodEnd = 1 day before dueDate
+   *
+   * Example:
+   * feeCycleStartDate: 15-09-2026, cycleIndex: 0
+   * periodStart = 15-09-2026
+   * periodEnd = 14-10-2026
+   * dueDate = 15-10-2026
    */
   static getBillingPeriodRange(
-    admissionDateInput: Date | string,
+    feeCycleStartDateInput: Date | string,
     cycleIndex: number
   ): BillingPeriodRange {
-    const admissionCal = this.parseCalendarDate(admissionDateInput);
-    const startCal = this.getCycleStartDate(admissionCal, cycleIndex);
-    const nextStartCal = this.getCycleStartDate(admissionCal, cycleIndex + 1);
-    const endCal = this.subtractOneDay(nextStartCal);
+    const feeCycleCal = this.parseCalendarDate(feeCycleStartDateInput);
+    const startCal = this.getCycleStartDate(feeCycleCal, cycleIndex);
+    const dueDateCal = this.getCycleStartDate(feeCycleCal, cycleIndex + 1);
+    const endCal = this.subtractOneDay(dueDateCal);
 
     const periodStart = this.createUtcDate(startCal);
     const periodEnd = this.createUtcDate(endCal);
-    const dueDate = periodEnd;
+    const dueDate = this.createUtcDate(dueDateCal);
 
     return {
       periodStart,
@@ -135,30 +169,31 @@ export class BillingDateUtils {
    * Determines which cycleIndex encompasses the given reference date (or current date).
    */
   static findCycleIndexForDate(
-    admissionDateInput: Date | string,
+    feeCycleStartDateInput: Date | string,
     referenceDateInput: Date | string = new Date()
   ): number {
-    const admissionCal = this.parseCalendarDate(admissionDateInput);
+    const feeCycleCal = this.parseCalendarDate(feeCycleStartDateInput);
     const refCal = this.parseCalendarDate(referenceDateInput);
 
-    // If reference is before admission, it belongs to initial cycle 0
-    if (this.diffInDays(admissionCal, refCal) < 0) {
+    // If reference is before fee cycle start date, it belongs to initial cycle 0
+    if (this.diffInDays(feeCycleCal, refCal) < 0) {
       return 0;
     }
 
     // Rough month estimate
     const monthDiff =
-      (refCal.year - admissionCal.year) * 12 + (refCal.month - admissionCal.month);
+      (refCal.year - feeCycleCal.year) * 12 + (refCal.month - feeCycleCal.month);
     let cycle = Math.max(0, monthDiff - 1);
 
     // Walk forward until cycle encompasses refCal
     while (true) {
-      const nextStartCal = this.getCycleStartDate(admissionCal, cycle + 1);
-      if (this.diffInDays(refCal, nextStartCal) > 0) {
-        // refCal is strictly before next cycle's start date
+      const nextDueDateCal = this.getCycleStartDate(feeCycleCal, cycle + 1);
+      // If reference date is on or after nextDueDateCal, walk to next cycle
+      if (this.diffInDays(nextDueDateCal, refCal) >= 0) {
+        cycle++;
+      } else {
         break;
       }
-      cycle++;
       if (cycle > 1200) break; // safety guard
     }
 

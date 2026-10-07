@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { SeatWithStudent, StudentWithSeat } from '../types/auth';
 import { SeatStatus } from '../types/auth';
+import { formatDate } from '../utils/dateUtils';
 import {
   X,
   User,
@@ -190,8 +191,13 @@ export const SeatDetailsDrawer: React.FC<SeatDetailsDrawerProps> = ({
                     <Calendar className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" /> Admission Date
                   </span>
                   <span className="font-semibold text-slate-900 dark:text-slate-200">
-                    {new Date(seat.currentStudent.admissionDate).toLocaleDateString()}
+                    {formatDate(seat.currentStudent.admissionDate)}
                   </span>
+                  {seat.currentStudent.feeCycleStartDate && seat.currentStudent.feeCycleStartDate !== seat.currentStudent.admissionDate && (
+                    <span className="block text-[10px] text-indigo-500 mt-0.5">
+                      Cycle: {formatDate(seat.currentStudent.feeCycleStartDate)}
+                    </span>
+                  )}
                 </div>
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
                   <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1">

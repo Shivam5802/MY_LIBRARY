@@ -13,6 +13,7 @@ import { StudentForm } from '../components/StudentForm';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { RecordPaymentModal } from '../components/RecordPaymentModal';
 import { WhatsAppReminderModal } from '../components/WhatsAppReminderModal';
+import { formatDate } from '../utils/dateUtils';
 import {
   ArrowLeft,
   User,
@@ -304,6 +305,7 @@ export const StudentProfilePage: React.FC = () => {
               shift: student.shift,
               locker: student.locker,
               admissionDate: student.admissionDate,
+              feeCycleStartDate: student.feeCycleStartDate,
               monthlyFee: student.monthlyFee,
             }}
             isEditMode={true}
@@ -367,7 +369,7 @@ export const StudentProfilePage: React.FC = () => {
                 <div className="flex items-center gap-2.5">
                   <CreditCard className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                    Current Fee Status (Cycle: {new Date(currentBilling.periodStart).toLocaleDateString()} – {new Date(currentBilling.periodEnd).toLocaleDateString()})
+                    Current Fee Status (Cycle: {formatDate(currentBilling.periodStart)} – {formatDate(currentBilling.periodEnd)})
                   </h3>
                 </div>
 
@@ -422,8 +424,8 @@ export const StudentProfilePage: React.FC = () => {
                   <span className="text-slate-500 dark:text-slate-400 block mb-1">Days Remaining</span>
                   <span className="font-bold text-indigo-600 dark:text-indigo-300 text-sm">
                     {currentBilling.daysRemaining >= 0
-                      ? `${currentBilling.daysRemaining} days (Due ${new Date(currentBilling.dueDate).toLocaleDateString()})`
-                      : `${Math.abs(currentBilling.daysRemaining)} days OVERDUE`}
+                      ? `${currentBilling.daysRemaining} days (Due ${formatDate(currentBilling.dueDate)})`
+                      : `${Math.abs(currentBilling.daysRemaining)} days OVERDUE (Due ${formatDate(currentBilling.dueDate)})`}
                   </span>
                 </div>
               </div>
@@ -459,7 +461,15 @@ export const StudentProfilePage: React.FC = () => {
                     <Calendar className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" /> Admission Date
                   </span>
                   <span className="font-semibold text-slate-900 dark:text-white">
-                    {new Date(student.admissionDate).toLocaleDateString()}
+                    {formatDate(student.admissionDate)}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-slate-200 dark:border-slate-800/60">
+                  <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" /> Fee Cycle Start Date
+                  </span>
+                  <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                    {formatDate(student.feeCycleStartDate || student.admissionDate)}
                   </span>
                 </div>
                 <div className="flex justify-between py-2">
@@ -504,10 +514,10 @@ export const StudentProfilePage: React.FC = () => {
                         )}
                       </div>
                       <div className="text-right text-[11px] text-slate-500 dark:text-slate-400">
-                        <div>Assigned: {new Date(h.assignedAt).toLocaleDateString()}</div>
+                        <div>Assigned: {formatDate(h.assignedAt)}</div>
                         {h.vacatedAt && (
                           <div className="text-slate-400 dark:text-slate-500">
-                            Vacated: {new Date(h.vacatedAt).toLocaleDateString()}
+                            Vacated: {formatDate(h.vacatedAt)}
                           </div>
                         )}
                       </div>
@@ -538,10 +548,10 @@ export const StudentProfilePage: React.FC = () => {
                     <div className="flex items-start justify-between">
                       <div>
                         <span className="font-bold text-slate-900 dark:text-white text-xs block">
-                          Cycle: {new Date(period.periodStart).toLocaleDateString()} – {new Date(period.periodEnd).toLocaleDateString()}
+                          Cycle: {formatDate(period.periodStart)} – {formatDate(period.periodEnd)}
                         </span>
                         <span className="text-[10px] text-slate-500">
-                          Due Date: {new Date(period.dueDate).toLocaleDateString()}
+                          Due Date: {formatDate(period.dueDate)}
                         </span>
                       </div>
                       <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
@@ -563,7 +573,7 @@ export const StudentProfilePage: React.FC = () => {
                               ₹{pmt.amount.toLocaleString('en-IN')} ({pmt.paymentMethod})
                             </span>
                             <span className="text-slate-500 dark:text-slate-400 font-mono text-[10px]">
-                              {pmt.receiptNumber} • {new Date(pmt.paymentDate).toLocaleDateString()}
+                              {pmt.receiptNumber} • {formatDate(pmt.paymentDate)}
                             </span>
                           </div>
                         ))}

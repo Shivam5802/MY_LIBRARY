@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { developerService } from '../services/developer.service';
 import { ReportFilterBar, type FilterState } from '../components/ReportFilterBar';
 import { ExportButtonGroup } from '../components/ExportButtonGroup';
+import { formatDate } from '../utils/dateUtils';
 import {
   FileSpreadsheet,
   IndianRupee,
@@ -181,7 +182,7 @@ export const DeveloperReportsPage: React.FC = () => {
                     {data.rows.map((r: any) => (
                       <tr key={r.paymentId} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                         <td className="px-4 py-3 font-mono text-purple-600 dark:text-purple-300 font-semibold">{r.receiptNumber}</td>
-                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{new Date(r.paymentDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{formatDate(r.paymentDate)}</td>
                         <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{r.studentName}</td>
                         <td className="px-4 py-3">{r.seatNumber ? `#${r.seatNumber}` : 'None'}</td>
                         <td className="px-4 py-3 text-[11px]">{r.shift}</td>
@@ -231,7 +232,7 @@ export const DeveloperReportsPage: React.FC = () => {
                         <td className="px-4 py-3">{formatInr(r.amount)}</td>
                         <td className="px-4 py-3 text-emerald-600 dark:text-emerald-400">{formatInr(r.paid)}</td>
                         <td className="px-4 py-3 font-bold text-rose-600 dark:text-rose-400">{formatInr(r.outstanding)}</td>
-                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{new Date(r.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{formatDate(r.dueDate)}</td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                             r.status === 'OVERDUE' ? 'bg-rose-50 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400' :
@@ -264,7 +265,8 @@ export const DeveloperReportsPage: React.FC = () => {
                       <th className="px-4 py-3">Mobile</th>
                       <th className="px-4 py-3">Shift</th>
                       <th className="px-4 py-3">Locker</th>
-                      <th className="px-4 py-3">Admission Date</th>
+                      <th className="px-4 py-3">Admission</th>
+                      <th className="px-4 py-3">Cycle Start</th>
                       <th className="px-4 py-3">Monthly Fee</th>
                       <th className="px-4 py-3">Status</th>
                     </tr>
@@ -277,7 +279,8 @@ export const DeveloperReportsPage: React.FC = () => {
                         <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{r.mobile}</td>
                         <td className="px-4 py-3 text-[11px]">{r.shift}</td>
                         <td className="px-4 py-3 text-[11px]">{r.locker}</td>
-                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{new Date(r.admissionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                        <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{formatDate(r.admissionDate)}</td>
+                        <td className="px-4 py-3 text-indigo-600 dark:text-indigo-400 font-medium">{r.feeCycleStartDate ? formatDate(r.feeCycleStartDate) : formatDate(r.admissionDate)}</td>
                         <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">{formatInr(r.monthlyFee)}</td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${r.status === 'ACTIVE' ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
@@ -323,7 +326,7 @@ export const DeveloperReportsPage: React.FC = () => {
                         <td className="px-4 py-3 text-slate-800 dark:text-slate-200">{r.studentName || '-'}</td>
                         <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{r.studentMobile || '-'}</td>
                         <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
-                          {r.assignedDate ? new Date(r.assignedDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
+                          {r.assignedDate ? formatDate(r.assignedDate) : '-'}
                         </td>
                       </tr>
                     ))}
@@ -344,6 +347,7 @@ export const DeveloperReportsPage: React.FC = () => {
                   <thead className="bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 uppercase font-semibold text-[11px] border-b border-slate-200 dark:border-slate-800">
                     <tr>
                       <th className="px-4 py-3">Admission Date</th>
+                      <th className="px-4 py-3">Cycle Start</th>
                       <th className="px-4 py-3">Student Name</th>
                       <th className="px-4 py-3">Seat</th>
                       <th className="px-4 py-3">Shift</th>
@@ -355,7 +359,8 @@ export const DeveloperReportsPage: React.FC = () => {
                   <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
                     {data.rows.map((r: any) => (
                       <tr key={r.studentId} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                        <td className="px-4 py-3 text-purple-600 dark:text-purple-300 font-semibold">{new Date(r.admissionDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                        <td className="px-4 py-3 text-purple-600 dark:text-purple-300 font-semibold">{formatDate(r.admissionDate)}</td>
+                        <td className="px-4 py-3 text-indigo-600 dark:text-indigo-400 font-medium">{r.feeCycleStartDate ? formatDate(r.feeCycleStartDate) : formatDate(r.admissionDate)}</td>
                         <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">{r.studentName}</td>
                         <td className="px-4 py-3">{r.seatNumber ? `#${r.seatNumber}` : 'None'}</td>
                         <td className="px-4 py-3">{r.shift}</td>

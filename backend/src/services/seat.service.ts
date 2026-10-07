@@ -35,6 +35,7 @@ export class SeatService {
               shift: student.shift as Shift,
               locker: student.locker as Locker,
               admissionDate: student.admissionDate.toISOString(),
+              feeCycleStartDate: student.feeCycleStartDate.toISOString(),
               monthlyFee: Number(student.monthlyFee),
               assignedAt: currentAssignment.assignedAt.toISOString(),
             }
@@ -77,6 +78,7 @@ export class SeatService {
             shift: student.shift as Shift,
             locker: student.locker as Locker,
             admissionDate: student.admissionDate.toISOString(),
+            feeCycleStartDate: student.feeCycleStartDate.toISOString(),
             monthlyFee: Number(student.monthlyFee),
             assignedAt: currentAssignment.assignedAt.toISOString(),
           }
@@ -177,6 +179,7 @@ export class SeatService {
           shift: student.shift as Shift,
           locker: student.locker as Locker,
           admissionDate: student.admissionDate.toISOString(),
+          feeCycleStartDate: student.feeCycleStartDate.toISOString(),
           monthlyFee: Number(student.monthlyFee),
           assignedAt: now.toISOString(),
         },
@@ -339,6 +342,7 @@ export class SeatService {
           shift: student.shift as Shift,
           locker: student.locker as Locker,
           admissionDate: student.admissionDate.toISOString(),
+          feeCycleStartDate: student.feeCycleStartDate.toISOString(),
           monthlyFee: Number(student.monthlyFee),
           assignedAt: now.toISOString(),
         },
